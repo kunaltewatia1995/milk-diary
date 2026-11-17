@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#166534">
+  <title>Milk Diary</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7f4;
+      color: #183326;
+    }
+    header {
+      background: #166534;
+      color: white;
+      padding: 20px;
+    }
+    header h1 { margin: 0; font-size: 23px; }
+    header p { margin: 6px 0 0; opacity: .85; }
+    main {
+      max-width: 1000px;
+      margin: auto;
+      padding: 16px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px #0000000b;
+    }
+    input, button {
+      font: inherit;
+      border-radius: 8px;
+      padding: 11px;
+    }
+    input {
+      border: 1px solid #d1ddd4;
+      width: 100%;
+      min-width: 0;
+    }
+    button {
+      border: 0;
+      cursor: pointer;
+      background: #166534;
+      color: white;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: #e7f0e9;
+      color: #166534;
+    }
+    button:disabled { opacity: .5; }
+    .hidden { display: none !important; }
+    .login {
+      max-width: 400px;
+      margin: 70px auto;
+    }
+    .login input { margin: 7px 0; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tabs button { flex: 1; }
+    .tabs button.active { background: #0f4223; }
+    .month-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .month-row input { max-width: 180px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .stat {
+      background: #edf5ef;
+      border-radius: 10px;
+      padding: 13px;
+    }
+    .stat small { color: #52685a; }
+    .stat strong {
+      display: block;
+      font-size: 19px;
+      margin-top: 7px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 460px;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e7eee8;
+      text-align: center;
+    }
+    th { background: #edf5ef; }
+    td:first-child, th:first-child { text-align: left; }
+    td input { min-width: 75px; text-align: center; }
+    .save-row { padding: 8px 12px; }
+    .muted { color: #718176; font-size: 13px; }
+    .message { margin-top: 10px; font-size: 14px; }
+    .green { color: #166534; }
+    .red { color: #b42318; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    @media(max-width: 600px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .settings-grid { grid-template-columns: 1fr; }
+      main { padding: 10px; }
+    }
+    @media print {
+      header, .tabs, .no-print, #login, .save-row,
+      #rateCard { display: none !important; }
+      body { background: white; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>🥛 Milk Diary</h1>
+  <p>Your daily milk & monthly billing manager</p>
+</header>
+
+<section id="login" class="login card">
+  <h2>Welcome back</h2>
+  <p class="muted">Sign in to access your milk diary.</p>
+  <input id="email" type="email" placeholder="Email address">
+  <input id="password" type="password" placeholder="Password">
+  <button style="width:100%" onclick="login()">Sign in</button>
+  <div id="loginMsg" class="message"></div>
+</section>
+
+<main id="app" class="hidden">
+  <div class="card no-print">
+    <div class="month-row">
+      <div>
+        <strong id="welcome">Milk Diary</strong>
+        <div class="muted">Manage your suppliers separately</div>
+      </div>
+      <button class="secondary" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="tabs no-print" id="supplierTabs"></div>
+
+  <div class="card">
+    <div class="month-row">
+      <h3>Monthly Diary</h3>
+      <input type="month" id="month" onchange="loadDiary()">
+    </div>
+    <p class="muted">Enter the daily quantity in litres. Use 0 for no milk.</p>
+  </div>
+
+  <div class="card">
+    <h3>Monthly Summary</h3>
+    <div class="stats">
+      <div class="stat">
+        <small>Cow Milk</small>
+        <strong id="cowTotal">0 L</strong>
+      </div>
+      <div class="stat">
+        <small>Buffalo Milk</small>
+        <strong id="buffaloTotal">0 L</strong>
+      </div>
+      <div class="stat">
+        <small>Total Quantity</small>
+        <strong id="totalQty">0 L</strong>
+      </div>
+      <div class="stat">
+        <small>Cow Amount</small>
+        <strong id="cowAmount">₹0</strong>
+      </div>
+      <div class="stat">
+        <small>Buffalo Amount</small>
+        <strong id="buffaloAmount">₹0</strong>
+      </div>
+      <div class="stat">
+        <small>Total Bill</small>
+        <strong id="totalAmount">₹0</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="month-row">
+      <h3>Daily Entries</h3>
+      <button class="secondary no-print" onclick="window.print()">
+        Print / Save PDF
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Cow (L)</th>
+            <th>Buffalo (L)</th>
+            <th class="no-print">Action</th>
+          </tr>
+        </thead>
+        <tbody id="diaryRows"></tbody>
+      </table>
+    </div>
+    <p id="status" class="message"></p>
+  </div>
+
+  <div class="card no-print" id="rateCard">
+    <h3>Milk Rates</h3>
+    <p class="muted">
+      Set a rate and the date from which it applies.
+      Previous rates will be retained.
+    </p>
+    <div class="settings-grid">
+      <label>
+        Cow rate (₹/L)
+        <input type="number" id="cowRate" min="0" step="0.01">
+      </label>
+      <label>
+        Buffalo rate (₹/L)
+        <input type="number" id="buffaloRate" min="0" step="0.01">
+      </label>
+      <label>
+        Effective from
+        <input type="date" id="rateDate">
+      </label>
+    </div>
+    <button style="margin-top:12px" onclick="saveRates()">
+      Save Rates
+    </button>
+    <p id="rateStatus" class="message"></p>
+  </div>
+</main>
+
+<script>
+  // SUPABASE CONFIGURATION
+  const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+  const SUPABASE_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  let currentUser = null;
+  let suppliers = [];
+  let activeSupplier = null;
+  let entries = [];
+  let rates = [];
+
+  const money = n => "₹" + Number(n).toFixed(2);
+  const quantity = n => Number(n).toFixed(2);
+  const el = id => document.getElementById(id);
+
+  function selectedMonth() {
+    return el("month").value;
+  }
+
+  async function login() {
+    el("loginMsg").textContent = "Signing in...";
+
+    const { data, error } = await db.auth.signInWithPassword({
+      email: el("email").value.trim(),
+      password: el("password").value
+    });
+
+    if (error) {
+      el("loginMsg").textContent = error.message;
+      return;
+    }
+
+    currentUser = data.user;
+    await startApp();
+  }
+
+  async function logout() {
+    await db.auth.signOut();
+    location.reload();
+  }
+
+  async function startApp() {
+    el("login").classList.add("hidden");
+    el("app").classList.remove("hidden");
+    el("welcome").textContent = currentUser.email;
+
+    const now = new Date();
+    el("month").value =
+      now.getFullYear() + "-" +
+      String(now.getMonth() + 1).padStart(2, "0");
+
+    el("rateDate").value = now.toISOString().slice(0, 10);
+
+    await loadSuppliers();
+  }
+
+  async function loadSuppliers() {
+    const { data, error } = await db
+      .from("suppliers")
+      .select("*")
+      .order("id");
+
+    if (error) {
+      alert("Unable to load suppliers: " + error.message);
+      return;
+    }
+
+    suppliers = data || [];
+
+    if (suppliers.length === 0) {
+      alert("No suppliers found. Please check your database.");
+      return;
+    }
+
+    activeSupplier = suppliers[0];
+    renderTabs();
+    await loadDiary();
+  }
+
+  function renderTabs() {
+    el("supplierTabs").innerHTML = "";
+
+    suppliers.forEach(supplier => {
+      const btn = document.createElement("button");
+      btn.textContent = supplier.name;
+      btn.className =
+        supplier.id === activeSupplier.id ? "active" : "";
+
+      btn.onclick = async () => {
+        activeSupplier = supplier;
+        renderTabs();
+        await loadDiary();
+      };
+
+      el("supplierTabs").appendChild(btn);
+    });
+  }
+
+  async function loadDiary() {
+    if (!activeSupplier) return;
+
+    const month = selectedMonth();
+    if (!month) return;
+
+    const [year, m] = month.split("-").map(Number);
+    const lastDay = new Date(year, m, 0).getDate();
+    const start = month + "-01";
+    const end = month + "-" + String(lastDay).padStart(2, "0");
+
+    el("status").textContent = "Loading...";
+
+    const [entryResult, rateResult] = await Promise.all([
+      db.from("milk_entries")
+        .select("*")
+        .eq("supplier_id", activeSupplier.id)
+        .gte("entry_date", start)
+        .lte("entry_date", end),
+
+      db.from("milk_rates")
+        .select("*")
+        .eq("supplier_id", activeSupplier.id)
+        .lte("effective_from", end)
+    ]);
+
+    if (entryResult.error || rateResult.error) {
+      el("status").textContent =
+        "Error: " +
+        (entryResult.error || rateResult.error).message;
+      return;
+    }
+
+    entries = entryResult.data || [];
+    rates = rateResult.data || [];
+
+    renderDiary(year, m, lastDay);
+    renderSummary();
+    el("status").textContent = "";
+  }
+
+  function renderDiary(year, month, lastDay) {
+    const tbody = el("diaryRows");
+    tbody.innerHTML = "";
+
+    for (let day = 1; day <= lastDay; day++) {
+      const date =
+        year + "-" +
+        String(month).padStart(2, "0") + "-" +
+        String(day).padStart(2, "0");
+
+      const entry = entries.find(e => e.entry_date === date);
+      const cow = entry ? entry.cow_quantity : "";
+      const buffalo = entry ? entry.buffalo_quantity : "";
+
+      const tr = document.createElement("tr");
+
+      const dateCell = document.createElement("td");
+      dateCell.textContent = String(day).padStart(2, "0") +
+        "/" + String(month).padStart(2, "0") +
+        "/" + year;
+
+      const cowCell = document.createElement("td");
+      const cowInput = document.createElement("input");
+      cowInput.type = "number";
+      cowInput.min = "0";
+      cowInput.step = "0.01";
+      cowInput.placeholder = "0";
+      cowInput.value = cow;
+      cowInput.id = "cow-" + day;
+      cowCell.appendChild(cowInput);
+
+      const buffaloCell = document.createElement("td");
+      const buffaloInput = document.createElement("input");
+      buffaloInput.type = "number";
+      buffaloInput.min = "0";
+      buffaloInput.step = "0.01";
+      buffaloInput.placeholder = "0";
+      buffaloInput.value = buffalo;
+      buffaloInput.id = "buffalo-" + day;
+      buffaloCell.appendChild(buffaloInput);
+
+      const actionCell = document.createElement("td");
+      actionCell.className = "no-print";
+
+      const save = document.createElement("button");
+      save.textContent = "Save";
+      save.className = "save-row";
+      save.onclick = () => saveEntry(date, day);
+
+      actionCell.appendChild(save);
+
+      tr.append(dateCell, cowCell, buffaloCell, actionCell);
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function saveEntry(date, day) {
+    const cow = Number(el("cow-" + day).value || 0);
+    const buffalo = Number(el("buffalo-" + day).value || 0);
+
+    if (!Number.isFinite(cow) || !Number.isFinite(buffalo) ||
+        cow < 0 || buffalo < 0) {
+      alert("Please enter valid non-negative quantities.");
+      return;
+    }
+
+    const existing = entries.find(e => e.entry_date === date);
+
+    const status = el("status");
+    status.textContent = "Saving...";
+
+    if (cow === 0 && buffalo === 0 && !existing) {
+      status.textContent = "Nothing to save.";
+      return;
+    }
+
+    const { error } = await db.from("milk_entries").upsert({
+      supplier_id: activeSupplier.id,
+      user_id: currentUser.id,
+      entry_date: date,
+      cow_quantity: cow,
+      buffalo_quantity: buffalo
+    }, {
+      onConflict: "supplier_id,entry_date"
+    });
+
+    if (error) {
+      status.textContent = "Save failed: " + error.message;
+      return;
+    }
+
+    status.textContent = "Saved successfully.";
+    await loadDiary();
+  }
+
+  async function saveRates() {
+    const cow = Number(el("cowRate").value);
+    const buffalo = Number(el("buffaloRate").value);
+    const date = el("rateDate").value;
+
+    if (!date || !Number.isFinite(cow) ||
+        !Number.isFinite(buffalo) || cow < 0 || buffalo < 0) {
+      el("rateStatus").textContent = "Enter valid rates and date.";
+      return;
+    }
+
+    el("rateStatus").textContent = "Saving rates...";
+
+    const records = [
+      {
+        supplier_id: activeSupplier.id,
+        user_id: currentUser.id,
+        milk_type: "cow",
+        rate_per_litre: cow,
+        effective_from: date
+      },
+      {
+        supplier_id: activeSupplier.id,
+        user_id: currentUser.id,
+        milk_type: "buffalo",
+        rate_per_litre: buffalo,
+        effective_from: date
+      }
+    ];
+
+    const { error } = await db.from("milk_rates").upsert(records, {
+      onConflict: "supplier_id,milk_type,effective_from"
+    });
+
+    if (error) {
+      el("rateStatus").textContent = error.message;
+      return;
+    }
+
+    el("rateStatus").textContent = "Rates saved successfully.";
+    await loadDiary();
+  }
+
+  function getRate(type, date) {
+    const matching = rates
+      .filter(r => r.milk_type === type &&
+                   r.effective_from <= date)
+      .sort((a, b) =>
+        b.effective_from.localeCompare(a.effective_from)
+      );
+
+    return matching.length
+      ? Number(matching[0].rate_per_litre)
+      : 0;
+  }
+
+  function renderSummary() {
+    let cowQty = 0;
+    let buffaloQty = 0;
+    let cowValue = 0;
+    let buffaloValue = 0;
+
+    entries.forEach(entry => {
+      const cq = Number(entry.cow_quantity || 0);
+      const bq = Number(entry.buffalo_quantity || 0);
+
+      cowQty += cq;
+      buffaloQty += bq;
+
+      cowValue += cq * getRate("cow", entry.entry_date);
+      buffaloValue += bq * getRate("buffalo", entry.entry_date);
+    });
+
+    el("cowTotal").textContent = quantity(cowQty) + " L";
+    el("buffaloTotal").textContent = quantity(buffaloQty) + " L";
+    el("totalQty").textContent = quantity(cowQty + buffaloQty) + " L";
+
+    el("cowAmount").textContent = money(cowValue);
+    el("buffaloAmount").textContent = money(buffaloValue);
+    el("totalAmount").textContent = money(cowValue + buffaloValue);
+  }
+
+  async function initialize() {
+    const { data: { session } } = await db.auth.getSession();
+
+    if (session) {
+      currentUser = session.user;
+      await startApp();
+    }
+
+    db.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") location.reload();
+    });
+  }
+
+  initialize();
+</script>
+</body>
+</html>
