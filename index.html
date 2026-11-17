@@ -242,6 +242,32 @@
     <p class="muted no-print">Leave both unchecked to show both milk types.</p>
   </div>
 
+  <div class="card no-print" id="rateCard">
+    <h3>Milk Rates</h3>
+    <p class="muted">
+      Set a rate and the date from which it applies.
+      Previous rates will be retained.
+    </p>
+    <div class="settings-grid">
+      <label id="cowRateField">
+        Cow rate (₹/L)
+        <input type="number" id="cowRate" min="0" step="0.01">
+      </label>
+      <label id="buffaloRateField">
+        Buffalo rate (₹/L)
+        <input type="number" id="buffaloRate" min="0" step="0.01">
+      </label>
+      <label>
+        Effective from
+        <input type="date" id="rateDate">
+      </label>
+    </div>
+    <button style="margin-top:12px" onclick="saveRates()">
+      Save Rates
+    </button>
+    <p id="rateStatus" class="message"></p>
+  </div>
+
   <div class="card">
     <h3>Monthly Summary</h3>
     <div class="stats">
@@ -296,32 +322,6 @@
       <button id="saveAllButton" onclick="saveAllEntries()">Save all entries</button>
     </div>
     <p id="status" class="message"></p>
-  </div>
-
-  <div class="card no-print" id="rateCard">
-    <h3>Milk Rates</h3>
-    <p class="muted">
-      Set a rate and the date from which it applies.
-      Previous rates will be retained.
-    </p>
-    <div class="settings-grid">
-      <label id="cowRateField">
-        Cow rate (₹/L)
-        <input type="number" id="cowRate" min="0" step="0.01">
-      </label>
-      <label id="buffaloRateField">
-        Buffalo rate (₹/L)
-        <input type="number" id="buffaloRate" min="0" step="0.01">
-      </label>
-      <label>
-        Effective from
-        <input type="date" id="rateDate">
-      </label>
-    </div>
-    <button style="margin-top:12px" onclick="saveRates()">
-      Save Rates
-    </button>
-    <p id="rateStatus" class="message"></p>
   </div>
 </main>
 
