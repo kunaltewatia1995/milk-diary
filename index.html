@@ -232,8 +232,6 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     ["buffaloQtyStat", "buffaloAmountStat", "buffaloHeader", "buffaloRateField"]
       .forEach(id => el(id).classList.toggle("hidden", !showBuffalo));
 
-    el("totalQty").closest(".stat").classList.remove("hidden");
-    el("totalAmount").closest(".stat").classList.remove("hidden");
   }
 
   function renderDiaryForSelectedMonth() {
