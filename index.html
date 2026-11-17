@@ -71,9 +71,20 @@
     }
     .tabs button { flex: 1; }
     .tabs button.active { background: #0f4223; }
-    .supplier-tab { display:flex; gap:6px; flex:1; min-width:0; }
-    .supplier-tab > button:first-child { flex:1; min-width:0; }
-    .delete-supplier { background:#fff0ef; color:#b42318; padding:8px 10px; }
+    .supplier-tab { display:flex; flex:1; min-width:0; }
+    .supplier-tab > button { flex:1; min-width:0; }
+    .compact-btn { padding:7px 11px; font-size:13px; white-space:nowrap; }
+    .supplier-manage-list { display:grid; gap:8px; margin-top:14px; }
+    .supplier-manage-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:9px 0; border-bottom:1px solid #edf1ed; }
+    .supplier-manage-row:last-child { border-bottom:0; }
+    .supplier-manage-row span { overflow-wrap:anywhere; }
+    .supplier-add-row { display:flex; gap:8px; margin-top:12px; }
+    .supplier-add-row input { flex:1; }
+    .bulk-save-row { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; }
+    .bulk-save-row button { min-width:130px; }
+    .save-hint { margin-right:auto; }
+    .saving { opacity:.65; pointer-events:none; }
     .dialog-backdrop { position:fixed; inset:0; background:#0008; display:flex;
       align-items:center; justify-content:center; padding:16px; z-index:1000; }
     .dialog { background:white; border-radius:14px; padding:20px; width:min(100%,440px);
@@ -119,7 +130,6 @@
     th { background: #edf5ef; }
     td:first-child, th:first-child { text-align: left; }
     td input { min-width: 75px; text-align: center; }
-    .save-row { padding: 8px 12px; }
     .muted { color: #718176; font-size: 13px; }
     .message { margin-top: 10px; font-size: 14px; }
     .green { color: #166534; }
@@ -152,7 +162,7 @@
       main { padding: 10px; }
     }
     @media print {
-      header, .tabs, .no-print, #login, .save-row,
+      header, .tabs, .no-print, #login,
       #rateCard { display: none !important; }
       body { background: white; }
       .card { box-shadow: none; }
@@ -186,18 +196,27 @@
     </div>
   </div>
 
-  <div class="card no-print">
-    <h3>Manage Suppliers</h3>
-    <div class="month-row">
-      <input id="newSupplierName" type="text" placeholder="Enter supplier name" maxlength="80">
-      <button onclick="addSupplier()">Add Supplier</button>
-    </div>
-    <p id="supplierStatus" class="message muted"></p>
+  <div class="month-row no-print" style="margin:0 0 12px">
+    <div class="tabs" id="supplierTabs" style="flex:1;margin:0"></div>
+    <button class="secondary compact-btn" onclick="openManageSuppliers()">Manage</button>
   </div>
 
-  <div class="tabs no-print" id="supplierTabs"></div>
+  <div id="manageSuppliersDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="manageSuppliersTitle">
+    <div class="dialog">
+      <div class="month-row">
+        <h3 id="manageSuppliersTitle">Manage suppliers</h3>
+        <button class="secondary compact-btn" onclick="closeManageSuppliers()">Close</button>
+      </div>
+      <div class="supplier-add-row">
+        <input id="newSupplierName" type="text" placeholder="New supplier name" maxlength="80">
+        <button class="compact-btn" onclick="addSupplier()">Add</button>
+      </div>
+      <div id="supplierManageList" class="supplier-manage-list"></div>
+      <p id="supplierStatus" class="message muted"></p>
+    </div>
+  </div>
 
-  <div id="deleteDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="deleteDialogTitle">
+  <div id="deleteDialog" class="dialog-backdrop hidden" style="z-index:1010" role="dialog" aria-modal="true" aria-labelledby="deleteDialogTitle">
     <div class="dialog">
       <h3 id="deleteDialogTitle">Delete supplier</h3>
       <p id="deleteDialogText" class="muted">Choose how you want to delete this supplier.</p>
@@ -267,11 +286,14 @@
             <th>Date</th>
             <th id="cowHeader">Cow (L)</th>
             <th id="buffaloHeader">Buffalo (L)</th>
-            <th class="no-print">Action</th>
           </tr>
         </thead>
         <tbody id="diaryRows"></tbody>
       </table>
+    </div>
+    <div class="bulk-save-row no-print">
+      <span class="muted save-hint">Save all dates together</span>
+      <button id="saveAllButton" onclick="saveAllEntries()">Save all entries</button>
     </div>
     <p id="status" class="message"></p>
   </div>
@@ -432,14 +454,14 @@
 
     suppliers = data || [];
 
-    if (suppliers.length === 0) {
-      alert("No suppliers found. Please check your database.");
-      return;
-    }
-
-    activeSupplier = suppliers[0];
+    activeSupplier = suppliers[0] || null;
     renderTabs();
-    await loadDiary();
+    if (activeSupplier) {
+      await loadDiary();
+    } else {
+      el("status").textContent = "No suppliers yet. Open Manage to add your first supplier.";
+      renderSummary();
+    }
   }
 
   async function addSupplier() {
@@ -473,6 +495,7 @@
     el("newSupplierName").value = "";
     el("supplierStatus").textContent = "Supplier added successfully.";
     renderTabs();
+    renderSupplierManageList();
     await loadDiary();
   }
 
@@ -480,28 +503,47 @@
 
   function renderTabs() {
     el("supplierTabs").innerHTML = "";
-
     suppliers.forEach(supplier => {
-      const wrap = document.createElement("div");
-      wrap.className = "supplier-tab";
-
       const btn = document.createElement("button");
       btn.textContent = supplier.name;
-      btn.className = supplier.id === activeSupplier.id ? "active" : "";
+      btn.className = supplier.id === activeSupplier?.id ? "active" : "";
       btn.onclick = async () => {
         activeSupplier = supplier;
         renderTabs();
         await loadDiary();
       };
+      el("supplierTabs").appendChild(btn);
+    });
+  }
 
+  function openManageSuppliers() {
+    renderSupplierManageList();
+    el("supplierStatus").textContent = "";
+    el("manageSuppliersDialog").classList.remove("hidden");
+  }
+
+  function closeManageSuppliers() {
+    el("manageSuppliersDialog").classList.add("hidden");
+  }
+
+  function renderSupplierManageList() {
+    const list = el("supplierManageList");
+    list.innerHTML = "";
+    if (!suppliers.length) {
+      list.textContent = "No active suppliers yet.";
+      return;
+    }
+    suppliers.forEach(supplier => {
+      const row = document.createElement("div");
+      row.className = "supplier-manage-row";
+      const name = document.createElement("span");
+      name.textContent = supplier.name;
       const del = document.createElement("button");
-      del.textContent = "Delete";
-      del.className = "delete-supplier";
-      del.title = "Delete " + supplier.name;
+      del.textContent = "Delete…";
+      del.className = "outline-danger compact-btn";
       del.onclick = () => openDeleteDialog(supplier);
-
-      wrap.append(btn, del);
-      el("supplierTabs").appendChild(wrap);
+      row.append(name, del);
+      list.appendChild(row);
     });
   }
 
@@ -511,12 +553,14 @@
     el("deleteDialogText").textContent =
       "Choose whether to hide this supplier and keep its history, or permanently delete all associated records.";
     el("deleteDialogStatus").textContent = "";
+    el("manageSuppliersDialog").classList.add("hidden");
     el("deleteDialog").classList.remove("hidden");
   }
 
   function closeDeleteDialog() {
     el("deleteDialog").classList.add("hidden");
     supplierPendingDeletion = null;
+    openManageSuppliers();
   }
 
   async function deleteSupplierOnly() {
@@ -538,6 +582,7 @@
     if (activeSupplier?.id === supplier.id) activeSupplier = suppliers[0] || null;
     closeDeleteDialog();
     renderTabs();
+    renderSupplierManageList();
 
     if (activeSupplier) {
       await loadDiary();
@@ -594,6 +639,7 @@
     if (activeSupplier?.id === supplier.id) activeSupplier = suppliers[0] || null;
     closeDeleteDialog();
     renderTabs();
+    renderSupplierManageList();
 
     if (activeSupplier) {
       await loadDiary();
@@ -608,7 +654,11 @@
   }
 
   async function loadDiary() {
-    if (!activeSupplier) return;
+    if (!activeSupplier) {
+      el("diaryRows").innerHTML = "";
+      el("status").textContent = "Add a supplier to start entering milk.";
+      return;
+    }
 
     const month = selectedMonth();
     if (!month) return;
@@ -692,58 +742,76 @@
       buffaloInput.id = "buffalo-" + day;
       buffaloCell.appendChild(buffaloInput);
 
-      const actionCell = document.createElement("td");
-      actionCell.className = "no-print";
-
-      const save = document.createElement("button");
-      save.textContent = "Save";
-      save.className = "save-row";
-      save.onclick = () => saveEntry(date, day);
-
-      actionCell.appendChild(save);
-
-      tr.append(dateCell, cowCell, buffaloCell, actionCell);
+      tr.append(dateCell, cowCell, buffaloCell);
       tbody.appendChild(tr);
     }
   }
 
-  async function saveEntry(date, day) {
-    const cow = Number(el("cow-" + day).value || 0);
-    const buffalo = Number(el("buffalo-" + day).value || 0);
-
-    if (!Number.isFinite(cow) || !Number.isFinite(buffalo) ||
-        cow < 0 || buffalo < 0) {
-      alert("Please enter valid non-negative quantities.");
+  async function saveAllEntries() {
+    if (!activeSupplier) {
+      el("status").textContent = "Please add or select a supplier first.";
       return;
     }
 
-    const existing = entries.find(e => e.entry_date === date);
-
-    const status = el("status");
-    status.textContent = "Saving...";
-
-    if (cow === 0 && buffalo === 0 && !existing) {
-      status.textContent = "Nothing to save.";
+    const month = selectedMonth();
+    if (!month) {
+      el("status").textContent = "Please select a month.";
       return;
     }
 
-    const { error } = await db.from("milk_entries").upsert({
-      supplier_id: activeSupplier.id,
-      user_id: currentUser.id,
-      entry_date: date,
-      cow_quantity: cow,
-      buffalo_quantity: buffalo
-    }, {
+    const [year, monthNumber] = month.split("-").map(Number);
+    const lastDay = new Date(year, monthNumber, 0).getDate();
+    const records = [];
+
+    for (let day = 1; day <= lastDay; day++) {
+      const date = `${month}-${String(day).padStart(2, "0")}`;
+      const cowRaw = el("cow-" + day).value.trim();
+      const buffaloRaw = el("buffalo-" + day).value.trim();
+      const cow = cowRaw === "" ? 0 : Number(cowRaw);
+      const buffalo = buffaloRaw === "" ? 0 : Number(buffaloRaw);
+      const existing = entries.find(e => e.entry_date === date);
+
+      if (!Number.isFinite(cow) || !Number.isFinite(buffalo) || cow < 0 || buffalo < 0) {
+        el("status").textContent = `Invalid quantity on day ${day}. Enter zero or a positive number.`;
+        return;
+      }
+
+      // Do not create empty rows for untouched days; retain existing rows even if changed to zero.
+      if (cow === 0 && buffalo === 0 && !existing) continue;
+
+      records.push({
+        supplier_id: activeSupplier.id,
+        user_id: currentUser.id,
+        entry_date: date,
+        cow_quantity: cow,
+        buffalo_quantity: buffalo
+      });
+    }
+
+    if (!records.length) {
+      el("status").textContent = "No entries to save.";
+      return;
+    }
+
+    const button = el("saveAllButton");
+    button.disabled = true;
+    button.textContent = "Saving…";
+    el("status").textContent = `Saving ${records.length} day(s)…`;
+
+    const { error } = await db.from("milk_entries").upsert(records, {
       onConflict: "supplier_id,entry_date"
     });
 
+    button.disabled = false;
+    button.textContent = "Save all entries";
+
     if (error) {
-      status.textContent = "Save failed: " + error.message;
+      el("status").textContent = "Save failed: " + error.message;
       return;
     }
 
-    status.textContent = "Saved successfully.";
     await loadDiary();
+    el("status").textContent = `Successfully saved ${records.length} day(s).`;
   }
 
   async function saveRates() {
