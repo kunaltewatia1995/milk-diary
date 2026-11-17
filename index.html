@@ -10,164 +10,38 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f7f4;
-      color: #183326;
-    }
-    header {
-      background: #166534;
-      color: white;
-      padding: 20px;
-    }
-    header h1 { margin: 0; font-size: 23px; }
-    header p { margin: 6px 0 0; opacity: .85; }
-    main {
-      max-width: 1000px;
-      margin: auto;
-      padding: 16px;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px #0000000b;
-    }
-    input, button {
-      font: inherit;
-      border-radius: 8px;
-      padding: 11px;
-    }
-    input {
-      border: 1px solid #d1ddd4;
-      width: 100%;
-      min-width: 0;
-    }
-    button {
-      border: 0;
-      cursor: pointer;
-      background: #166534;
-      color: white;
-      font-weight: 600;
-    }
-    button.secondary {
-      background: #e7f0e9;
-      color: #166534;
-    }
-    button:disabled { opacity: .5; }
-    .hidden { display: none !important; }
-    .login {
-      max-width: 400px;
-      margin: 70px auto;
-    }
-    .login input { margin: 7px 0; }
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .tabs button { flex: 1; }
-    .tabs button.active { background: #0f4223; }
-    .supplier-tab { display:flex; flex:1; min-width:0; }
-    .supplier-tab > button { flex:1; min-width:0; }
-    .compact-btn { padding:7px 11px; font-size:13px; white-space:nowrap; }
-    .supplier-manage-list { display:grid; gap:8px; margin-top:14px; }
-    .supplier-manage-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
-      padding:9px 0; border-bottom:1px solid #edf1ed; }
-    .supplier-manage-row:last-child { border-bottom:0; }
-    .supplier-manage-row span { overflow-wrap:anywhere; }
-    .supplier-add-row { display:flex; gap:8px; margin-top:12px; }
-    .supplier-add-row input { flex:1; }
-    .bulk-save-row { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; }
-    .bulk-save-row button { min-width:130px; }
-    .save-hint { margin-right:auto; }
-    .saving { opacity:.65; pointer-events:none; }
-    .dialog-backdrop { position:fixed; inset:0; background:#0008; display:flex;
-      align-items:center; justify-content:center; padding:16px; z-index:1000; }
-    .dialog { background:white; border-radius:14px; padding:20px; width:min(100%,440px);
-      box-shadow:0 12px 40px #0003; }
-    .dialog-actions { display:grid; gap:10px; margin-top:16px; }
-    .dialog-actions button { width:100%; }
-    button.danger { background:#b42318; }
-    button.outline-danger { background:#fff0ef; color:#b42318; }
-    .month-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .month-row input { max-width: 180px; }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .stat {
-      background: #edf5ef;
-      border-radius: 10px;
-      padding: 13px;
-    }
-    .stat small { color: #52685a; }
-    .stat strong {
-      display: block;
-      font-size: 19px;
-      margin-top: 7px;
-    }
-    .table-wrap { overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 460px;
-    }
-    th, td {
-      padding: 10px 8px;
-      border-bottom: 1px solid #e7eee8;
-      text-align: center;
-    }
-    th { background: #edf5ef; }
-    td:first-child, th:first-child { text-align: left; }
-    td input { min-width: 75px; text-align: center; }
-    .muted { color: #718176; font-size: 13px; }
-    .message { margin-top: 10px; font-size: 14px; }
-    .green { color: #166534; }
-    .red { color: #b42318; }
-    .settings-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .milk-choice {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-top: 12px;
-    }
-    .milk-choice label {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-weight: 600;
-    }
-    .milk-choice input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      margin: 0;
-    }
-    @media(max-width: 600px) {
-      .stats { grid-template-columns: 1fr 1fr; }
-      .settings-grid { grid-template-columns: 1fr; }
-      main { padding: 10px; }
-    }
-    @media print {
-      header, .tabs, .no-print, #login,
-      #rateCard { display: none !important; }
-      body { background: white; }
-      .card { box-shadow: none; }
-    }
-  </style>
+
+*{box-sizing:border-box}
+:root{--green:#176b3a;--dark:#10542d;--soft:#eaf5ee;--ink:#183326;--muted:#718176;--line:#e5ece7}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#f5f8f5;color:var(--ink)}
+header{background:var(--dark);color:#fff;padding:11px 17px}header h1{margin:0;font-size:20px}header p{display:none}
+main{max-width:1180px;margin:auto;padding:9px 13px 24px}
+.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;box-shadow:0 2px 9px #173c240d}
+input,button{font:inherit;border-radius:8px;padding:8px 10px}input{border:1px solid #d6e1d9;width:100%;min-width:0;background:#fff;color:var(--ink)}
+input:focus{outline:2px solid #b8dfc5;border-color:var(--green)}button{border:0;cursor:pointer;background:var(--green);color:#fff;font-weight:650}button.secondary{background:var(--soft);color:var(--dark)}button:disabled{opacity:.55}.hidden{display:none!important}
+.login{max-width:400px;margin:70px auto}.login input{margin:7px 0}
+.month-row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.tabs{display:flex;gap:7px;margin:0;min-width:0;overflow-x:auto}.tabs button{flex:0 0 auto;white-space:nowrap;padding:8px 13px;background:#e8f0ea;color:#315b40}.tabs button.active{background:var(--dark);color:#fff}
+.supplier-tab{display:flex;flex:1;min-width:0}.supplier-tab>button{flex:1;min-width:0}.compact-btn{padding:7px 10px;font-size:13px;white-space:nowrap}
+.supplier-manage-list{display:grid;gap:8px;margin-top:14px}.supplier-manage-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #edf1ed}.supplier-manage-row:last-child{border-bottom:0}.supplier-manage-row span{overflow-wrap:anywhere}
+.supplier-add-row{display:flex;gap:8px;margin-top:12px}.supplier-add-row input{flex:1}
+.dialog-backdrop{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:16px;z-index:1000}.dialog{background:#fff;border-radius:15px;padding:19px;width:min(100%,440px);box-shadow:0 12px 40px #0003}.dialog-actions{display:grid;gap:10px;margin-top:16px}.dialog-actions button{width:100%}button.danger{background:#b42318}button.outline-danger{background:#fff0ef;color:#b42318}
+.overview{padding:12px 14px}.overview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.overview-title{font-size:12px;font-weight:750;color:#496052;text-transform:uppercase;letter-spacing:.06em}.overview-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.overview-controls input[type=month]{width:165px}
+.milk-choice{display:flex;gap:6px;margin:0}.milk-choice label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fafcfb}.milk-choice input[type=checkbox]{width:15px;height:15px;margin:0;accent-color:var(--green)}
+.summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}.summary-item{background:#f6faf7;border:1px solid #edf2ee;border-radius:9px;padding:8px 10px;min-width:0}.summary-item small{display:block;color:var(--muted);font-size:11px}.summary-item strong{display:block;margin-top:3px;font-size:17px}
+.summary-detail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:7px}.summary-detail .summary-item{background:#fff;padding:7px 9px}.summary-detail strong{font-size:14px}
+details.rate-settings{margin-top:9px;border-top:1px solid var(--line);padding-top:9px}details.rate-settings summary{cursor:pointer;color:var(--dark);font-size:13px;font-weight:700}
+.settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}.settings-grid label{font-size:12px;color:#53675a;font-weight:650}.settings-grid input{display:block;margin-top:5px}.rate-actions{display:flex;align-items:center;gap:10px;margin-top:9px}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:420px}th,td{padding:7px 9px;border-bottom:1px solid #edf1ed;text-align:center}th{background:#f4f8f5;color:#53675a;font-size:12px;font-weight:700}
+td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;color:#4c6153;font-size:13px}td input{min-width:72px;text-align:center;padding:7px 8px;border-radius:7px}tbody tr:hover{background:#fbfdfb}
+.daily-card{padding:12px 14px}.daily-heading{margin-bottom:8px}.daily-heading h3{margin:0;font-size:17px}.daily-heading .muted{margin:3px 0 0}
+.bulk-save-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:9px;position:sticky;bottom:6px;background:#ffffffed;backdrop-filter:blur(8px);padding:9px 0 2px}.bulk-save-row button{min-width:145px;box-shadow:0 3px 10px #176b3a24}.save-hint{margin-right:auto}
+.muted{color:var(--muted);font-size:12px}.message{margin-top:8px;font-size:13px}.green{color:#166534}.red{color:#b42318}
+@media(max-width:700px){main{padding:8px 8px 20px}header{padding:10px 13px}.card{padding:10px;margin-bottom:8px}.overview-head{align-items:flex-start}.overview-controls{width:100%}.overview-controls input[type=month]{flex:1;width:auto}.summary-strip{gap:6px}.summary-item{padding:7px}.summary-item strong{font-size:15px}.summary-detail{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}th,td{padding:6px 5px}.bulk-save-row{bottom:3px}}
+@media(max-width:420px){.milk-choice{width:100%}.milk-choice label{flex:1;justify-content:center}.summary-item small{font-size:10px}.summary-item strong{font-size:13px}.save-hint{font-size:11px}}
+@media print{header,.tabs,.no-print,#login,details.rate-settings{display:none!important}body{background:#fff}.card{box-shadow:none;border:0;padding:0}main{max-width:none;padding:0}}
+
+</style>
 </head>
 
 <body>
@@ -229,78 +103,42 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="month-row">
-      <h3>Monthly Diary</h3>
-      <input type="month" id="month" onchange="loadDiary()">
+  <section class="card overview">
+    <div class="overview-head">
+      <div class="overview-title">Monthly overview</div>
+      <div class="overview-controls">
+        <input type="month" id="month" onchange="loadDiary()" aria-label="Select month">
+        <div class="milk-choice no-print" aria-label="Milk type for this supplier and month">
+          <label><input type="checkbox" id="cowOnly" onchange="changeMilkMode('cow')"> Cow only</label>
+          <label><input type="checkbox" id="buffaloOnly" onchange="changeMilkMode('buffalo')"> Buffalo only</label>
+        </div>
+      </div>
     </div>
-    <p class="muted">Enter the daily quantity in litres. Use 0 for no milk.</p>
-    <div class="milk-choice no-print" aria-label="Milk type for this supplier and month">
-      <label><input type="checkbox" id="cowOnly" onchange="changeMilkMode('cow')"> Cow milk only</label>
-      <label><input type="checkbox" id="buffaloOnly" onchange="changeMilkMode('buffalo')"> Buffalo milk only</label>
+    <div class="summary-strip">
+      <div class="summary-item"><small>Total quantity</small><strong id="totalQty">0 L</strong></div>
+      <div class="summary-item"><small>Total bill</small><strong id="totalAmount">₹0</strong></div>
+      <div class="summary-item"><small>Current rate</small><strong id="rateSummary">—</strong></div>
     </div>
-    <p class="muted no-print">Leave both unchecked to show both milk types.</p>
-  </div>
+    <div class="summary-detail">
+      <div class="summary-item" id="cowQtyStat"><small>Cow quantity</small><strong id="cowTotal">0 L</strong></div>
+      <div class="summary-item" id="buffaloQtyStat"><small>Buffalo quantity</small><strong id="buffaloTotal">0 L</strong></div>
+      <div class="summary-item" id="cowAmountStat"><small>Cow amount</small><strong id="cowAmount">₹0</strong></div>
+      <div class="summary-item" id="buffaloAmountStat"><small>Buffalo amount</small><strong id="buffaloAmount">₹0</strong></div>
+    </div>
+    <details class="rate-settings no-print" id="rateCard">
+      <summary>Milk rates & settings</summary>
+      <div class="settings-grid">
+        <label id="cowRateField">Cow rate (₹/L)<input type="number" id="cowRate" min="0" step="0.01"></label>
+        <label id="buffaloRateField">Buffalo rate (₹/L)<input type="number" id="buffaloRate" min="0" step="0.01"></label>
+        <label>Effective from<input type="date" id="rateDate"></label>
+      </div>
+      <div class="rate-actions"><button class="compact-btn" onclick="saveRates()">Save rates</button><p id="rateStatus" class="message"></p></div>
+    </details>
+  </section>
 
-  <div class="card no-print" id="rateCard">
-    <h3>Milk Rates</h3>
-    <p class="muted">
-      Set a rate and the date from which it applies.
-      Previous rates will be retained.
-    </p>
-    <div class="settings-grid">
-      <label id="cowRateField">
-        Cow rate (₹/L)
-        <input type="number" id="cowRate" min="0" step="0.01">
-      </label>
-      <label id="buffaloRateField">
-        Buffalo rate (₹/L)
-        <input type="number" id="buffaloRate" min="0" step="0.01">
-      </label>
-      <label>
-        Effective from
-        <input type="date" id="rateDate">
-      </label>
-    </div>
-    <button style="margin-top:12px" onclick="saveRates()">
-      Save Rates
-    </button>
-    <p id="rateStatus" class="message"></p>
-  </div>
-
-  <div class="card">
-    <h3>Monthly Summary</h3>
-    <div class="stats">
-      <div class="stat" id="cowQtyStat">
-        <small>Total Cow Milk Quantity</small>
-        <strong id="cowTotal">0 L</strong>
-      </div>
-      <div class="stat" id="buffaloQtyStat">
-        <small>Total Buffalo Milk Quantity</small>
-        <strong id="buffaloTotal">0 L</strong>
-      </div>
-      <div class="stat">
-        <small>Total Quantity</small>
-        <strong id="totalQty">0 L</strong>
-      </div>
-      <div class="stat" id="cowAmountStat">
-        <small>Total Cow Milk Amount</small>
-        <strong id="cowAmount">₹0</strong>
-      </div>
-      <div class="stat" id="buffaloAmountStat">
-        <small>Total Buffalo Milk Amount</small>
-        <strong id="buffaloAmount">₹0</strong>
-      </div>
-      <div class="stat">
-        <small>Total Bill Amount</small>
-        <strong id="totalAmount">₹0</strong>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="month-row">
-      <h3>Daily Entries</h3>
+  <div class="card daily-card">
+    <div class="month-row daily-heading">
+      <div><h3>Daily entries</h3><p class="muted">Enter quantities in litres, then save once.</p></div>
       <button class="secondary no-print" onclick="window.print()">
         Print / Save PDF
       </button>
@@ -435,7 +273,7 @@
       now.getFullYear() + "-" +
       String(now.getMonth() + 1).padStart(2, "0");
 
-    el("rateDate").value = now.toISOString().slice(0, 10);
+    el("rateDate").value = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
 
     await loadSuppliers();
   }
@@ -902,6 +740,17 @@
     el("cowAmount").textContent = money(visibleCowValue);
     el("buffaloAmount").textContent = money(visibleBuffaloValue);
     el("totalAmount").textContent = money(visibleCowValue + visibleBuffaloValue);
+    const rateParts = [];
+    if (milkMode !== "buffalo") {
+      const r = rates.filter(x => x.milk_type === "cow").sort((a,b) => b.effective_from.localeCompare(a.effective_from))[0];
+      if (r) rateParts.push("Cow ₹" + Number(r.rate_per_litre).toFixed(0));
+    }
+    if (milkMode !== "cow") {
+      const r = rates.filter(x => x.milk_type === "buffalo").sort((a,b) => b.effective_from.localeCompare(a.effective_from))[0];
+      if (r) rateParts.push("Buffalo ₹" + Number(r.rate_per_litre).toFixed(0));
+    }
+    el("rateSummary").textContent = rateParts.join(" · ") || "Not set";
+
   }
 
   async function initialize() {
