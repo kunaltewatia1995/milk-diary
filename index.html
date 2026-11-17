@@ -41,7 +41,19 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
 @media(max-width:420px){.milk-choice{width:100%}.milk-choice label{flex:1;justify-content:center}.summary-item small{font-size:10px}.summary-item strong{font-size:13px}.save-hint{font-size:11px}}
 @media print{header,.tabs,.no-print,#login,details.rate-settings{display:none!important}body{background:#fff}.card{box-shadow:none;border:0;padding:0}main{max-width:none;padding:0}}
 
-</style>
+
+.profile-bar{display:flex;justify-content:flex-end;align-items:center;margin:0 0 6px;min-height:28px}
+.profile-menu-wrap{position:relative}
+.profile-trigger{display:flex;align-items:center;gap:7px;padding:6px 10px}
+.profile-avatar{display:inline-flex;width:19px;height:19px;border-radius:50%;align-items:center;justify-content:center;background:#d6eadc;color:#10542d;font-size:9px}
+.profile-chevron{font-size:15px;line-height:1}
+.profile-menu{position:absolute;right:0;top:calc(100% + 7px);z-index:950;width:min(260px,calc(100vw - 28px));padding:8px;background:#fff;border:1px solid #e5ece7;border-radius:12px;box-shadow:0 10px 28px #173c2420}
+.profile-email{padding:9px 10px;font-size:12px;color:#718176;overflow-wrap:anywhere}
+.profile-menu-divider{height:1px;background:#e5ece7;margin:3px 0}
+.profile-logout{width:100%;text-align:left;background:transparent;color:#b42318;padding:9px 10px;font-size:13px}
+.profile-logout:hover{background:#fff3f2}
+
+  </style>
 </head>
 
 <body>
@@ -60,13 +72,19 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
 </section>
 
 <main id="app" class="hidden">
-  <div class="card no-print">
-    <div class="month-row">
-      <div>
-        <strong id="welcome">Milk Diary</strong>
-        <div class="muted">Manage your suppliers separately</div>
+  <div class="profile-bar no-print">
+    <div class="profile-menu-wrap">
+      <button class="secondary compact-btn profile-trigger" id="profileTrigger"
+        onclick="toggleProfileMenu()" aria-haspopup="true" aria-expanded="false"
+        aria-controls="profileMenu" title="User profile">
+        <span class="profile-avatar" aria-hidden="true">●</span>
+        <span>Profile</span><span class="profile-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div class="profile-menu hidden" id="profileMenu" role="menu">
+        <div class="profile-email" id="profileEmail"></div>
+        <div class="profile-menu-divider"></div>
+        <button class="profile-logout" onclick="logout()" role="menuitem">Sign out</button>
       </div>
-      <button class="secondary" onclick="logout()">Logout</button>
     </div>
   </div>
 
@@ -264,7 +282,7 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
   async function startApp() {
     el("login").classList.add("hidden");
     el("app").classList.remove("hidden");
-    el("welcome").textContent = currentUser.email;
+    el("profileEmail").textContent = currentUser.email;
 
     const now = new Date();
     el("month").value =
@@ -750,6 +768,31 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     el("rateSummary").textContent = rateParts.join(" · ") || "Not set";
 
   }
+
+
+  function toggleProfileMenu() {
+    const menu = el("profileMenu");
+    const trigger = el("profileTrigger");
+    const willOpen = menu.classList.contains("hidden");
+    menu.classList.toggle("hidden", !willOpen);
+    trigger.setAttribute("aria-expanded", String(willOpen));
+  }
+
+  function closeProfileMenu() {
+    const menu = el("profileMenu");
+    const trigger = el("profileTrigger");
+    if (!menu || !trigger) return;
+    menu.classList.add("hidden");
+    trigger.setAttribute("aria-expanded", "false");
+  }
+
+  document.addEventListener("click", event => {
+    const wrap = document.querySelector(".profile-menu-wrap");
+    if (wrap && !wrap.contains(event.target)) closeProfileMenu();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeProfileMenu();
+  });
 
   async function initialize() {
     const { data: { session } } = await db.auth.getSession();
