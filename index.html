@@ -119,8 +119,9 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     <div class="dialog">
       <div class="month-row">
         <h3 id="manageSuppliersTitle">Manage suppliers</h3>
-        <button class="secondary compact-btn" onclick="closeManageSuppliers()">Close</button>
+        <button id="closeManageSuppliersBtn" class="secondary compact-btn" onclick="closeManageSuppliers()">Close</button>
       </div>
+      <p id="supplierDialogIntro" class="muted">Add or manage your suppliers. Each supplier has its own diary and billing history.</p>
       <div class="supplier-add-row">
         <input id="newSupplierName" type="text" placeholder="New supplier name" maxlength="80">
         <button class="compact-btn" onclick="addSupplier()">Add</button>
@@ -220,6 +221,7 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
   let rates = [];
   let milkMode = "both";
   let authMode = "signup";
+  let firstSupplierSetup = false;
 
   const money = n => "₹" + Number(n).toFixed(2);
   const quantity = n => Number(n).toFixed(2);
@@ -419,8 +421,10 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     if (activeSupplier) {
       await loadDiary();
     } else {
-      el("status").textContent = "No suppliers yet. Open Manage to add your first supplier.";
+      firstSupplierSetup = true;
+      el("status").textContent = "Add your first supplier to start your milk diary.";
       renderSummary();
+      openManageSuppliers(true);
     }
   }
 
@@ -456,6 +460,10 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     el("supplierStatus").textContent = "Supplier added successfully.";
     renderTabs();
     renderSupplierManageList();
+    if (firstSupplierSetup) {
+      firstSupplierSetup = false;
+      closeManageSuppliers(true);
+    }
     await loadDiary();
   }
 
@@ -476,13 +484,22 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     });
   }
 
-  function openManageSuppliers() {
+  function openManageSuppliers(firstSetup = false) {
     renderSupplierManageList();
     el("supplierStatus").textContent = "";
+    el("manageSuppliersTitle").textContent = firstSetup ? "Add your first supplier" : "Manage suppliers";
+    el("supplierDialogIntro").textContent = firstSetup
+      ? "Before you start, add the person or dairy you buy milk from. You can add more suppliers later."
+      : "Add or manage your suppliers. Each supplier has its own diary and billing history.";
+    el("closeManageSuppliersBtn").classList.toggle("hidden", firstSetup && suppliers.length === 0);
+    el("supplierManageList").classList.toggle("hidden", firstSetup && suppliers.length === 0);
+    el("newSupplierName").placeholder = firstSetup ? "Enter your first supplier name" : "New supplier name";
     el("manageSuppliersDialog").classList.remove("hidden");
+    if (firstSetup) setTimeout(() => el("newSupplierName").focus(), 50);
   }
 
-  function closeManageSuppliers() {
+  function closeManageSuppliers(force = false) {
+    if (firstSupplierSetup && suppliers.length === 0 && !force) return;
     el("manageSuppliersDialog").classList.add("hidden");
   }
 
@@ -551,7 +568,9 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
       rates = [];
       el("diaryRows").innerHTML = "";
       renderSummary();
-      el("status").textContent = "No active suppliers. Add a supplier to continue.";
+      el("status").textContent = "Add a supplier to continue your milk diary.";
+      firstSupplierSetup = true;
+      openManageSuppliers(true);
     }
     el("supplierStatus").textContent = "Supplier hidden. Its entries, rates and payment history are retained.";
   }
@@ -608,7 +627,9 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
       rates = [];
       el("diaryRows").innerHTML = "";
       renderSummary();
-      el("status").textContent = "No active suppliers. Add a supplier to continue.";
+      el("status").textContent = "Add a supplier to continue your milk diary.";
+      firstSupplierSetup = true;
+      openManageSuppliers(true);
     }
     el("supplierStatus").textContent = "Supplier and associated records permanently deleted.";
   }
