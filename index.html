@@ -14,7 +14,7 @@
 *{box-sizing:border-box}
 :root{--green:#176b3a;--dark:#10542d;--soft:#eaf5ee;--ink:#183326;--muted:#718176;--line:#e5ece7}
 body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#f5f8f5;color:var(--ink)}
-header{background:var(--dark);color:#fff;padding:11px 17px}header h1{margin:0;font-size:20px}header p{display:none}
+header{background:var(--dark);color:#fff;padding:10px 17px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:54px}header h1{margin:0;font-size:20px;line-height:1.2}header p{display:none}
 main{max-width:1180px;margin:auto;padding:9px 13px 24px}
 .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;box-shadow:0 2px 9px #173c240d}
 input,button{font:inherit;border-radius:8px;padding:8px 10px}input{border:1px solid #d6e1d9;width:100%;min-width:0;background:#fff;color:var(--ink)}
@@ -37,12 +37,15 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
 .daily-card{padding:12px 14px}.daily-heading{margin-bottom:8px}.daily-heading h3{margin:0;font-size:17px}.daily-heading .muted{margin:3px 0 0}
 .bulk-save-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:9px;position:sticky;bottom:6px;background:#ffffffed;backdrop-filter:blur(8px);padding:9px 0 2px}.bulk-save-row button{min-width:145px;box-shadow:0 3px 10px #176b3a24}.save-hint{margin-right:auto}
 .muted{color:var(--muted);font-size:12px}.message{margin-top:8px;font-size:13px}.green{color:#166534}.red{color:#b42318}
-@media(max-width:700px){main{padding:8px 8px 20px}header{padding:10px 13px}.card{padding:10px;margin-bottom:8px}.overview-head{align-items:flex-start}.overview-controls{width:100%}.overview-controls input[type=month]{flex:1;width:auto}.summary-strip{gap:6px}.summary-item{padding:7px}.summary-item strong{font-size:15px}.summary-detail{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}th,td{padding:6px 5px}.bulk-save-row{bottom:3px}}
+@media(max-width:700px){main{padding:8px 8px 20px}header{padding:9px 12px;min-height:50px}header h1{font-size:18px}.card{padding:10px;margin-bottom:8px}.overview-head{align-items:flex-start}.overview-controls{width:100%}.overview-controls input[type=month]{flex:1;width:auto}.summary-strip{gap:6px}.summary-item{padding:7px}.summary-item strong{font-size:15px}.summary-detail{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}th,td{padding:6px 5px}.bulk-save-row{bottom:3px}}
 @media(max-width:420px){.milk-choice{width:100%}.milk-choice label{flex:1;justify-content:center}.summary-item small{font-size:10px}.summary-item strong{font-size:13px}.save-hint{font-size:11px}}
 @media print{header,.tabs,.no-print,#login,details.rate-settings{display:none!important}body{background:#fff}.card{box-shadow:none;border:0;padding:0}main{max-width:none;padding:0}}
 
 
-.profile-bar{display:flex;justify-content:flex-end;align-items:center;margin:0 0 6px;min-height:28px}
+.profile-bar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;flex:0 0 auto}
+.profile-trigger{background:#ffffff1c;color:#fff;border:1px solid #ffffff38}
+.profile-trigger:hover{background:#ffffff2b}
+.profile-avatar{background:#d6eadc;color:#10542d}
 .profile-menu-wrap{position:relative}
 .profile-trigger{display:flex;align-items:center;gap:7px;padding:6px 10px}
 .profile-avatar{display:inline-flex;width:19px;height:19px;border-radius:50%;align-items:center;justify-content:center;background:#d6eadc;color:#10542d;font-size:9px}
@@ -59,20 +62,7 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
 <body>
 <header>
   <h1>🥛 Milk Diary</h1>
-  <p>Your daily milk & monthly billing manager</p>
-</header>
-
-<section id="login" class="login card">
-  <h2>Welcome back</h2>
-  <p class="muted">Sign in to access your milk diary.</p>
-  <input id="email" type="email" placeholder="Email address">
-  <input id="password" type="password" placeholder="Password">
-  <button style="width:100%" onclick="login()">Sign in</button>
-  <div id="loginMsg" class="message"></div>
-</section>
-
-<main id="app" class="hidden">
-  <div class="profile-bar no-print">
+  <div class="profile-bar no-print hidden" id="profileBar">
     <div class="profile-menu-wrap">
       <button class="secondary compact-btn profile-trigger" id="profileTrigger"
         onclick="toggleProfileMenu()" aria-haspopup="true" aria-expanded="false"
@@ -87,7 +77,18 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
       </div>
     </div>
   </div>
+</header>
 
+<section id="login" class="login card">
+  <h2>Welcome back</h2>
+  <p class="muted">Sign in to access your milk diary.</p>
+  <input id="email" type="email" placeholder="Email address">
+  <input id="password" type="password" placeholder="Password">
+  <button style="width:100%" onclick="login()">Sign in</button>
+  <div id="loginMsg" class="message"></div>
+</section>
+
+<main id="app" class="hidden">
   <div class="month-row no-print" style="margin:0 0 12px">
     <div class="tabs" id="supplierTabs" style="flex:1;margin:0"></div>
     <button class="secondary compact-btn" onclick="openManageSuppliers()">Manage</button>
@@ -283,6 +284,7 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     el("login").classList.add("hidden");
     el("app").classList.remove("hidden");
     el("profileEmail").textContent = currentUser.email;
+    el("profileBar").classList.remove("hidden");
 
     const now = new Date();
     el("month").value =
