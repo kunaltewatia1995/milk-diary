@@ -118,6 +118,23 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
     }
+    .milk-choice {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .milk-choice label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+    }
+    .milk-choice input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
     @media(max-width: 600px) {
       .stats { grid-template-columns: 1fr 1fr; }
       .settings-grid { grid-template-columns: 1fr; }
@@ -166,16 +183,21 @@
       <input type="month" id="month" onchange="loadDiary()">
     </div>
     <p class="muted">Enter the daily quantity in litres. Use 0 for no milk.</p>
+    <div class="milk-choice no-print" aria-label="Milk type for this supplier and month">
+      <label><input type="checkbox" id="cowOnly" onchange="changeMilkMode('cow')"> Cow milk only</label>
+      <label><input type="checkbox" id="buffaloOnly" onchange="changeMilkMode('buffalo')"> Buffalo milk only</label>
+    </div>
+    <p class="muted no-print">Leave both unchecked to show both milk types.</p>
   </div>
 
   <div class="card">
     <h3>Monthly Summary</h3>
     <div class="stats">
-      <div class="stat">
+      <div class="stat" id="cowQtyStat">
         <small>Total Cow Milk Quantity</small>
         <strong id="cowTotal">0 L</strong>
       </div>
-      <div class="stat">
+      <div class="stat" id="buffaloQtyStat">
         <small>Total Buffalo Milk Quantity</small>
         <strong id="buffaloTotal">0 L</strong>
       </div>
@@ -183,11 +205,11 @@
         <small>Total Quantity</small>
         <strong id="totalQty">0 L</strong>
       </div>
-      <div class="stat">
+      <div class="stat" id="cowAmountStat">
         <small>Total Cow Milk Amount</small>
         <strong id="cowAmount">₹0</strong>
       </div>
-      <div class="stat">
+      <div class="stat" id="buffaloAmountStat">
         <small>Total Buffalo Milk Amount</small>
         <strong id="buffaloAmount">₹0</strong>
       </div>
@@ -210,8 +232,8 @@
         <thead>
           <tr>
             <th>Date</th>
-            <th>Cow (L)</th>
-            <th>Buffalo (L)</th>
+            <th id="cowHeader">Cow (L)</th>
+            <th id="buffaloHeader">Buffalo (L)</th>
             <th class="no-print">Action</th>
           </tr>
         </thead>
@@ -228,11 +250,11 @@
       Previous rates will be retained.
     </p>
     <div class="settings-grid">
-      <label>
+      <label id="cowRateField">
         Cow rate (₹/L)
         <input type="number" id="cowRate" min="0" step="0.01">
       </label>
-      <label>
+      <label id="buffaloRateField">
         Buffalo rate (₹/L)
         <input type="number" id="buffaloRate" min="0" step="0.01">
       </label>
@@ -263,6 +285,7 @@
   let activeSupplier = null;
   let entries = [];
   let rates = [];
+  let milkMode = "both";
 
   const money = n => "₹" + Number(n).toFixed(2);
   const quantity = n => Number(n).toFixed(2);
@@ -270,6 +293,59 @@
 
   function selectedMonth() {
     return el("month").value;
+  }
+
+  function milkModeStorageKey() {
+    return `milkDiaryMode:${currentUser.id}:${activeSupplier.id}:${selectedMonth()}`;
+  }
+
+  function loadMilkMode() {
+    milkMode = localStorage.getItem(milkModeStorageKey()) || "both";
+    el("cowOnly").checked = milkMode === "cow";
+    el("buffaloOnly").checked = milkMode === "buffalo";
+    applyMilkMode();
+  }
+
+  function changeMilkMode(selected) {
+    const cowChecked = el("cowOnly").checked;
+    const buffaloChecked = el("buffaloOnly").checked;
+
+    // The two options are mutually exclusive. Unchecking the selected option
+    // returns the view to Both milk types.
+    if (selected === "cow" && cowChecked) {
+      milkMode = "cow";
+      el("buffaloOnly").checked = false;
+    } else if (selected === "buffalo" && buffaloChecked) {
+      milkMode = "buffalo";
+      el("cowOnly").checked = false;
+    } else {
+      milkMode = "both";
+      el("cowOnly").checked = false;
+      el("buffaloOnly").checked = false;
+    }
+
+    localStorage.setItem(milkModeStorageKey(), milkMode);
+    applyMilkMode();
+    renderDiaryForSelectedMonth();
+    renderSummary();
+  }
+
+  function applyMilkMode() {
+    const showCow = milkMode !== "buffalo";
+    const showBuffalo = milkMode !== "cow";
+
+    ["cowQtyStat", "cowAmountStat", "cowHeader", "cowRateField"]
+      .forEach(id => el(id).classList.toggle("hidden", !showCow));
+    ["buffaloQtyStat", "buffaloAmountStat", "buffaloHeader", "buffaloRateField"]
+      .forEach(id => el(id).classList.toggle("hidden", !showBuffalo));
+
+    el("totalQty").closest(".stat").classList.remove("hidden");
+    el("totalAmount").closest(".stat").classList.remove("hidden");
+  }
+
+  function renderDiaryForSelectedMonth() {
+    const [year, month] = selectedMonth().split("-").map(Number);
+    if (year && month) renderDiary(year, month, new Date(year, month, 0).getDate());
   }
 
   async function login() {
@@ -387,6 +463,7 @@
     entries = entryResult.data || [];
     rates = rateResult.data || [];
 
+    loadMilkMode();
     renderDiary(year, m, lastDay);
     renderSummary();
     el("status").textContent = "";
@@ -414,6 +491,7 @@
         "/" + year;
 
       const cowCell = document.createElement("td");
+      cowCell.className = milkMode === "buffalo" ? "hidden" : "";
       const cowInput = document.createElement("input");
       cowInput.type = "number";
       cowInput.min = "0";
@@ -424,6 +502,7 @@
       cowCell.appendChild(cowInput);
 
       const buffaloCell = document.createElement("td");
+      buffaloCell.className = milkMode === "cow" ? "hidden" : "";
       const buffaloInput = document.createElement("input");
       buffaloInput.type = "number";
       buffaloInput.min = "0";
@@ -500,22 +579,25 @@
 
     el("rateStatus").textContent = "Saving rates...";
 
-    const records = [
-      {
+    const records = [];
+    if (milkMode !== "buffalo") {
+      records.push({
         supplier_id: activeSupplier.id,
         user_id: currentUser.id,
         milk_type: "cow",
         rate_per_litre: cow,
         effective_from: date
-      },
-      {
+      });
+    }
+    if (milkMode !== "cow") {
+      records.push({
         supplier_id: activeSupplier.id,
         user_id: currentUser.id,
         milk_type: "buffalo",
         rate_per_litre: buffalo,
         effective_from: date
-      }
-    ];
+      });
+    }
 
     const { error } = await db.from("milk_rates").upsert(records, {
       onConflict: "supplier_id,milk_type,effective_from"
@@ -560,13 +642,18 @@
       buffaloValue += bq * getRate("buffalo", entry.entry_date);
     });
 
-    el("cowTotal").textContent = quantity(cowQty) + " L";
-    el("buffaloTotal").textContent = quantity(buffaloQty) + " L";
-    el("totalQty").textContent = quantity(cowQty + buffaloQty) + " L";
+    const visibleCowQty = milkMode === "buffalo" ? 0 : cowQty;
+    const visibleBuffaloQty = milkMode === "cow" ? 0 : buffaloQty;
+    const visibleCowValue = milkMode === "buffalo" ? 0 : cowValue;
+    const visibleBuffaloValue = milkMode === "cow" ? 0 : buffaloValue;
 
-    el("cowAmount").textContent = money(cowValue);
-    el("buffaloAmount").textContent = money(buffaloValue);
-    el("totalAmount").textContent = money(cowValue + buffaloValue);
+    el("cowTotal").textContent = quantity(visibleCowQty) + " L";
+    el("buffaloTotal").textContent = quantity(visibleBuffaloQty) + " L";
+    el("totalQty").textContent = quantity(visibleCowQty + visibleBuffaloQty) + " L";
+
+    el("cowAmount").textContent = money(visibleCowValue);
+    el("buffaloAmount").textContent = money(visibleBuffaloValue);
+    el("totalAmount").textContent = money(visibleCowValue + visibleBuffaloValue);
   }
 
   async function initialize() {
