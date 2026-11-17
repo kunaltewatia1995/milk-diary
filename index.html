@@ -175,6 +175,15 @@
     </div>
   </div>
 
+  <div class="card no-print">
+    <h3>Manage Suppliers</h3>
+    <div class="month-row">
+      <input id="newSupplierName" type="text" placeholder="Enter supplier name" maxlength="80">
+      <button onclick="addSupplier()">Add Supplier</button>
+    </div>
+    <p id="supplierStatus" class="message muted"></p>
+  </div>
+
   <div class="tabs no-print" id="supplierTabs"></div>
 
   <div class="card">
@@ -404,6 +413,39 @@
     }
 
     activeSupplier = suppliers[0];
+    renderTabs();
+    await loadDiary();
+  }
+
+  async function addSupplier() {
+    const name = el("newSupplierName").value.trim();
+
+    if (!name) {
+      el("supplierStatus").textContent = "Please enter a supplier name.";
+      return;
+    }
+
+    el("supplierStatus").textContent = "Adding supplier...";
+
+    const { data, error } = await db
+      .from("suppliers")
+      .insert({
+        name,
+        user_id: currentUser.id
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      el("supplierStatus").textContent =
+        "Could not add supplier: " + error.message;
+      return;
+    }
+
+    suppliers.push(data);
+    activeSupplier = data;
+    el("newSupplierName").value = "";
+    el("supplierStatus").textContent = "Supplier added successfully.";
     renderTabs();
     await loadDiary();
   }
