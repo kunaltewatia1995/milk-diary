@@ -56,6 +56,13 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
 .profile-logout{width:100%;text-align:left;background:transparent;color:#b42318;padding:9px 10px;font-size:13px}
 .profile-logout:hover{background:#fff3f2}
 
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin:14px 0}
+.auth-tabs button{padding:8px 5px;font-size:11px;background:#edf4ef;color:#315b40}
+.auth-tabs button.active{background:var(--dark);color:#fff}
+.auth-label{display:block;margin:9px 0 3px;font-size:12px;font-weight:700;color:#53675a}
+#login .message{overflow-wrap:anywhere}
+
+
   </style>
 </head>
 
@@ -80,12 +87,26 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
 </header>
 
 <section id="login" class="login card">
-  <h2>Welcome back</h2>
-  <p class="muted">Sign in to access your milk diary.</p>
-  <input id="email" type="email" placeholder="Email address">
-  <input id="password" type="password" placeholder="Password">
-  <button style="width:100%" onclick="login()">Sign in</button>
-  <div id="loginMsg" class="message"></div>
+  <h2>Welcome to Milk Diary</h2>
+  <p class="muted">Create an account or sign in using your mobile number.</p>
+  <div class="auth-tabs">
+    <button type="button" id="signupTab" class="active" onclick="setAuthMode('signup')">Create account</button>
+    <button type="button" id="phoneLoginTab" onclick="setAuthMode('phoneLogin')">Mobile login</button>
+    <button type="button" id="emailLoginTab" onclick="setAuthMode('emailLogin')">Existing email login</button>
+  </div>
+  <label id="phoneLabel" class="auth-label" for="phoneNumber">Mobile number</label>
+  <input id="phoneNumber" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile number">
+  <label id="emailLabel" class="auth-label hidden" for="email">Email address</label>
+  <input id="email" class="hidden" type="email" autocomplete="email" placeholder="Existing email address">
+  <label class="auth-label" for="password">Password</label>
+  <input id="password" type="password" autocomplete="new-password" placeholder="Choose a password (minimum 8 characters)">
+  <div id="confirmPasswordWrap">
+    <label class="auth-label" for="confirmPassword">Confirm password</label>
+    <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Enter password again">
+  </div>
+  <button id="authSubmit" style="width:100%;margin-top:8px" onclick="submitAuth()">Create account</button>
+  <div id="loginMsg" class="message" role="status" aria-live="polite"></div>
+  <p class="muted" style="margin-top:12px">Mobile numbers are used as login IDs and are not verified by SMS. Keep your password safe.</p>
 </section>
 
 <main id="app" class="hidden">
@@ -198,6 +219,7 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
   let entries = [];
   let rates = [];
   let milkMode = "both";
+  let authMode = "signup";
 
   const money = n => "₹" + Number(n).toFixed(2);
   const quantity = n => Number(n).toFixed(2);
@@ -258,19 +280,98 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
     if (year && month) renderDiary(year, month, new Date(year, month, 0).getDate());
   }
 
-  async function login() {
+  // Mobile-number accounts use a deterministic, synthetic email identifier
+  // because Supabase Email/Password Auth does not natively support usernames.
+  // No email is sent; Email confirmations must be disabled in Supabase Auth.
+  const PHONE_LOGIN_DOMAIN = "users.milk-diary-psi.vercel.app";
+
+  function normalizeIndianMobile(value) {
+    let digits = String(value || "").replace(/\D/g, "");
+    if (digits.length === 10) digits = "91" + digits;
+    if (digits.length === 12 && digits.startsWith("91") && /^[6-9]/.test(digits.slice(2))) return digits;
+    return null;
+  }
+
+  function phoneLoginEmail(phoneDigits) {
+    return `md${phoneDigits}@${PHONE_LOGIN_DOMAIN}`;
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    const isEmail = mode === "emailLogin";
+    const isSignup = mode === "signup";
+    el("phoneNumber").classList.toggle("hidden", isEmail);
+    el("phoneLabel").classList.toggle("hidden", isEmail);
+    el("email").classList.toggle("hidden", !isEmail);
+    el("emailLabel").classList.toggle("hidden", !isEmail);
+    el("confirmPasswordWrap").classList.toggle("hidden", !isSignup);
+    el("password").setAttribute("autocomplete", isSignup ? "new-password" : "current-password");
+    el("authSubmit").textContent = isSignup ? "Create account" : "Sign in";
+    el("signupTab").classList.toggle("active", isSignup);
+    el("phoneLoginTab").classList.toggle("active", mode === "phoneLogin");
+    el("emailLoginTab").classList.toggle("active", isEmail);
+    el("loginMsg").textContent = "";
+  }
+
+  async function submitAuth() {
+    const password = el("password").value;
+    if (password.length < 8) {
+      el("loginMsg").textContent = "Please use a password with at least 8 characters.";
+      return;
+    }
+
+    let email;
+    let phoneDigits = null;
+    if (authMode === "emailLogin") {
+      email = el("email").value.trim().toLowerCase();
+      if (!email) {
+        el("loginMsg").textContent = "Enter your email address.";
+        return;
+      }
+    } else {
+      phoneDigits = normalizeIndianMobile(el("phoneNumber").value);
+      if (!phoneDigits) {
+        el("loginMsg").textContent = "Enter a valid Indian 10-digit mobile number.";
+        return;
+      }
+      email = phoneLoginEmail(phoneDigits);
+    }
+
+    if (authMode === "signup") {
+      if (password !== el("confirmPassword").value) {
+        el("loginMsg").textContent = "Passwords do not match.";
+        return;
+      }
+      el("loginMsg").textContent = "Creating your account...";
+      const { data, error } = await db.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            phone_login: phoneDigits,
+            login_method: "mobile_password"
+          }
+        }
+      });
+      if (error) {
+        el("loginMsg").textContent = error.message;
+        return;
+      }
+      if (!data.session) {
+        el("loginMsg").textContent = "Account request received, but Supabase email confirmation is still enabled. Disable email confirmations in Authentication settings, then try registration again.";
+        return;
+      }
+      currentUser = data.user;
+      await startApp();
+      return;
+    }
+
     el("loginMsg").textContent = "Signing in...";
-
-    const { data, error } = await db.auth.signInWithPassword({
-      email: el("email").value.trim(),
-      password: el("password").value
-    });
-
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
     if (error) {
       el("loginMsg").textContent = error.message;
       return;
     }
-
     currentUser = data.user;
     await startApp();
   }
@@ -283,7 +384,10 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
   async function startApp() {
     el("login").classList.add("hidden");
     el("app").classList.remove("hidden");
-    el("profileEmail").textContent = currentUser.email;
+    const profilePhone = currentUser.user_metadata?.phone_login;
+    el("profileEmail").textContent = profilePhone
+      ? `+${profilePhone}`
+      : (currentUser.email || "Signed-in account");
     el("profileBar").classList.remove("hidden");
 
     const now = new Date();
@@ -797,6 +901,7 @@ td:first-child,th:first-child{text-align:left}td:first-child{font-weight:650;col
   });
 
   async function initialize() {
+    setAuthMode("signup");
     const { data: { session } } = await db.auth.getSession();
 
     if (session) {
